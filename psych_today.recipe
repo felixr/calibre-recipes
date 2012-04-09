@@ -1,0 +1,44 @@
+#!/usr/bin/env  python
+# vim: set ft=python:
+
+from calibre.web.feeds.news import BasicNewsRecipe
+
+class PsychToday(BasicNewsRecipe):
+    title          = u'Psychology Today'
+    __author__     = 'Felix Riedel'
+    description    = ''
+    language = 'en'
+    masthead_url = 'http://m.psychologytoday.com/about/contact'
+    cover_url = 'http://rsrc2.psychologytoday.com/files/imagecache/cover-small/covers/pt122cover.png'
+
+    keep_only_tags = [dict(id='content')]
+    remove_tags = [dict(name='div', attrs={'class':'social'})]
+
+    INDEX = 'http://m.psychologytoday.com/mobile?page=0'
+
+    def get_browser(self):
+        # use mobile browser to get simpler HTML
+        br = BasicNewsRecipe.get_browser(mobile_browser=True)
+        return br
+
+    def parse_index(self):
+        import re
+        articles = []
+        soup = self.index_to_soup(self.INDEX)
+
+        # for section in soup.findAll('div', attrs={'class':'magazineSection'}):
+        index = soup.find('ul', attrs={'class':'mobile-blog-post-index'})
+        for item in index.findAll('li'):
+            a = item.find('a', href=True)
+            info = item.find('span', attrs={'class':'submitted'})
+            m = re.match(r'(.*) on (.*)', info.string)
+            date = m.group(0) 
+            author = m.group(1) 
+            url = a['href']
+            if url.startswith('/'):
+                url = 'http://www.psychologytoday.com'+url
+            
+            title = a.contents[0].strip()
+            print title, url
+            articles.append({'title': title, 'url': url, 'author': author, 'date': date})
+        return [('Latest articles',articles)]
